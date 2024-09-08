@@ -47,6 +47,11 @@ module PyPI
     end
 
     sig { returns(T::Boolean) }
+    def private_package?
+      !!name.match(/https?:\/\//)
+    end
+
+    sig { returns(T::Boolean) }
     def valid_pypi_package?
       @is_pypi_url || !@is_url
     end
@@ -334,8 +339,24 @@ module PyPI
     ohai "Retrieving PyPI dependencies for excluded \"#{exclude_packages.join(" ")}\"..." if show_info
     exclude_packages = pip_report(exclude_packages, python_name:, print_stderr: verbose && show_info)
     exclude_packages += [Package.new(main_package.name)] unless main_package.nil?
+    # We assume that the private package URL will have the found package name in it (e.g. /package-name/). We
+    # thus want to exclude that package from calling PyPi and instead include the private package in the resource
+    # list
+    private_package_to_package = Hash[input_packages.select{|package| package.private_package?}.map{|private_package| [private_package.name,found_packages.find{|found| private_package.name.match(/\/#{found.name}\//)}]}]
+    exclude_packages += private_package_to_package.values
 
     new_resource_blocks = ""
+    private_package_to_package.each do |url, package|
+      ohai "Adding privaate package info for \"#{package}\"" if show_info
+      uri = URI(url)
+      new_resource_blocks += <<-EOS
+  resource "#{package.name}" do
+    url "#{uri.scheme}#{uri.host}#{uri.path}"
+    sha256 "#{uri.fragment}"
+  end
+
+      EOS
+    end
     found_packages.sort.each do |package|
       if exclude_packages.include? package
         ohai "Excluding \"#{package}\"" if show_info
@@ -408,7 +429,11 @@ module PyPI
   def self.normalize_python_package(name)
     # This normalization is defined in the PyPA packaging specifications;
     # https://packaging.python.org/en/latest/specifications/name-normalization/#name-normalization
-    name.gsub(/[-_.]+/, "-").downcase
+    if name.match(/https?:\/\//)
+      name
+    else
+      name.gsub(/[-_.]+/, "-").downcase
+    end
   end
 
   def self.pip_report(packages, python_name: "python", print_stderr: false)
