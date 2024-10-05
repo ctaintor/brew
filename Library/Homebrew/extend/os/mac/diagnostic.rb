@@ -139,6 +139,8 @@ module Homebrew
         # Homebrew/brew is currently using.
         return if GitHub::Actions.env_set?
 
+        return if ENV["HOMEBREW_NO_WARN_OUTDATED_XCODE"]
+
         # With fake El Capitan for Portable Ruby, we are intentionally not using Xcode 8.
         # This is because we are not using the CLT and Xcode 8 has the 10.12 SDK.
         return if ENV["HOMEBREW_FAKE_MACOS"]

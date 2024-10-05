@@ -397,6 +397,10 @@ module Homebrew
                      "from homebrew-core.",
         boolean:     true,
       },
+      HOMEBREW_NO_WARN_OUTDATED_XCODE:           {
+        description: "If set, Homebrew will not warn about using outdated (but still compatible) Xcode versions.",
+        boolean:     true,
+      },
       HOMEBREW_PIP_INDEX_URL:                    {
         description:  "If set, `brew install` <formula> will use this URL to download PyPI package resources.",
         default_text: "`https://pypi.org/simple`.",

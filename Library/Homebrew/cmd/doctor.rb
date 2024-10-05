@@ -30,6 +30,10 @@ module Homebrew
       def run
         Homebrew.inject_dump_stats!(Diagnostic::Checks, /^check_*/) if args.audit_debug?
 
+        # While it is probably OK to run an outdated Xcode for normal operations,
+        # it's good to know if we have an outdated Xcode when running `brew doctor`.
+        ENV.delete("HOMEBREW_NO_WARN_OUTDATED_XCODE")
+
         checks = Diagnostic::Checks.new(verbose: args.verbose?)
 
         if args.list_checks?
